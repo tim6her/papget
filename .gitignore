@@ -1,0 +1,13 @@
+files/
+build/
+dist/
+listb.egg-info/
+.eggs/
+old/
+__pycache__/
+*.bib
+*.html
+*.pyc
+.DS_Store
+docs/_*
+src/
