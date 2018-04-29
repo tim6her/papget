@@ -1,7 +1,8 @@
 files/
 build/
 dist/
-listb.egg-info/
+ENV/
+*.egg-info
 .eggs/
 old/
 __pycache__/

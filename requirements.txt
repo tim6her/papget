@@ -2,4 +2,4 @@ click>=2.0
 bs4
 pyyaml
 mechanize
-urllib
+bibtexparser
