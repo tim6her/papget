@@ -34,20 +34,27 @@ def main(info=True, files=None):
             for url in urls:
                 target, provider = get_target(url, browser)
                 if target:
-                    provider.papget(target, 'temp.pdf')
-
+                    fn = name_format(f)
+                    provider.papget(target, fn)
 
 def get_target(url, browser=None):
-    try:
-        target = papget.doi.resolve_doi(url, browser)
-    except mechanize.HTTPError:
-        click.echo(browser.response())
-        return None, None
+    target = papget.doi.resolve_doi(url, browser)
 
     for provider in papget.ALL_PROVIDERS:
         if provider.RE_URL.search(target):
             return target, provider
     return None, None
+
+def name_format(bib_name, style='shelah'):
+    fn = os.path.basename(bib_name)
+    nr = fn.split('-')[0]
+    if nr in name_format.cache:
+        name_format.cache[nr] += 1
+        nr = '{}-{}'.format(nr, name_format.cache[nr])
+    else:
+        name_format.cache[nr] = 1
+    return '{}.pdf'.format(nr)
+name_format.cache = {}
 
 if __name__ == '__main__':
     main()
