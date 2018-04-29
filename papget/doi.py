@@ -3,8 +3,9 @@
 """ A collection of funcitons handling DOI-s
 """
 
-
 from __future__ import unicode_literals, division, print_function
+
+import mechanize
 
 from . import papget
 
@@ -26,5 +27,8 @@ def resolve_doi(url, browser=None):
         'https://ieeexplore.ieee.org/document/771073/'
     """
     browser = papget.Provider.get_browser(browser)
-    browser.open(url)
+    try:
+        browser.open(url)
+    except mechanize.HTTPError:
+        pass
     return browser.geturl()

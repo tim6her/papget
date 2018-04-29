@@ -7,18 +7,19 @@ Springer.
 from __future__ import print_function, division, unicode_literals
 
 import re
-import urllib
 
 from bs4 import BeautifulSoup
+import requests
 from mechanize import Browser
 
 class Provider(object):
     """ Class representing the providers of papers
 
-    Do not instance this class but inherit from it and overwrite
-    :func:`need_to_pay` and :func:`papget`.
+    Note:
+        Do not instance this class but inherit from it and overwrite
+    :func:`need_to_pay` and :func:`get_pdf_url`.
     """
-    NAME = None
+    NAME = ''
     """ (str): Name of provider
     """
     RE_URL = None
@@ -26,6 +27,8 @@ class Provider(object):
             Compiled regex used for matching URLs to this
             provider
     """
+    def __repr__(self):
+        return self.NAME
 
     @classmethod
     def get_soup(cls, url, browser=None):
@@ -71,7 +74,13 @@ class Provider(object):
                     If no browser is provided, a new instance
                     will be created.
         """
-        pass
+        browser = cls.get_browser(browser)
+        if not cls.need_to_pay(url, browser):
+            link = cls.get_pdf_url(url, browser)
+            req = requests.get(link)
+            with open(filename, 'wb') as pdf:
+                pdf.write(req.content)
+            return filename
 
     @classmethod
     def get_pdf_url(cls, url, browser=None):
@@ -96,6 +105,12 @@ class Provider(object):
         if not browser:
             browser = Browser()
             browser.set_handle_robots(False)
+            browser.addheaders = [(
+                'User-agent',
+                ('Mozilla/5.0 (X11; U; Linux i686; en-US; '
+                'rv:1.9.0.1) Gecko/2008071615 '
+                'Fedora/3.0.1-1.fc9 Firefox/3.0.1'))]
+
         return browser
 
 class Springer(Provider):
@@ -108,7 +123,7 @@ class Springer(Provider):
         >>> Springer.get_pdf_url(url)
         u'https://link.springer.com/content/pdf/10.1007%2Fs40065-017-0185-1.pdf'
         >>> Springer.papget(url, 'temp.pdf')
-        (u'temp.pdf', ...
+        u'temp.pdf'
         >>> import os; os.remove('temp.pdf')
     """
     NAME = 'Springer'
@@ -133,11 +148,45 @@ class Springer(Provider):
         link = a['href']
         return 'https://link.springer.com%s' % link
 
+class Cammbridge(Provider):
+    """ Provider implementation for Cammbridge University Press
+
+    Examples:
+        >>> url = 'https://bit.ly/2KoN7vU'
+        >>> bool(Cammbridge.need_to_pay(url))
+        False
+        >>> Cammbridge.get_pdf_url(url)
+        u'https://www.cambridge.org/core/services/aop-...
+        >>> Cammbridge.papget(url, 'temp.pdf')
+        u'temp.pdf'
+        >>> import os; os.remove('temp.pdf')
+    """
+    NAME = 'Cammbridge University Press'
+    RE_URL = re.compile('www.cambridge.org')
+
+    @classmethod
+    def need_to_pay(cls, url, browser=None):
+        soup = cls.get_soup(url, browser)
+        return soup.find('a', attrs={'aria-label': 'get access'})
+
+    @classmethod
+    def get_pdf_url(cls, url, browser=None):
+        soup = cls.get_soup(url, browser)
+        pdf = soup.find('a',
+                        attrs={'aria-label': 'Download PDF'})
+        link = pdf['href']
+        #link = link.split('.pdf')[0] + '.pdf'
+        return 'https://www.cambridge.org%s' % link
+
     @classmethod
     def papget(cls, url, filename, browser=None):
         browser = cls.get_browser(browser)
         if not cls.need_to_pay(url, browser):
             link = cls.get_pdf_url(url, browser)
-            return urllib.urlretrieve(link, filename)
+            req = requests.get(link)
+            with open(filename, 'wb') as pdf:
+                pdf.write(req.content)
+            return filename
 
-ALL_PROVIDERS = [Springer]
+
+ALL_PROVIDERS = [Springer, Cammbridge]
