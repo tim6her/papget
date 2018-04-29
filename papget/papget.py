@@ -178,15 +178,35 @@ class Cammbridge(Provider):
         #link = link.split('.pdf')[0] + '.pdf'
         return 'https://www.cambridge.org%s' % link
 
+class Ams(Provider):
+    """ Provider implementation for American Mathematical
+    Society
+
+    Examples:
+        >>> url = 'https://bit.ly/2HEalfN'
+        >>> bool(Ams.need_to_pay(url))
+        False
+        >>> Ams.get_pdf_url(url)
+        u'http://www.ams.org/journals/jams/2016-29-01/...
+        >>> Ams.papget(url, 'temp.pdf')
+        u'temp.pdf'
+        >>> import os; os.remove('temp.pdf')
+    """
+    NAME = 'American Mathematical Society'
+    RE_URL = re.compile('www.ams.org')
+
     @classmethod
-    def papget(cls, url, filename, browser=None):
+    def need_to_pay(cls, url, browser=None):
+        return False
+
+    @classmethod
+    def get_pdf_url(cls, url, browser=None):
         browser = cls.get_browser(browser)
-        if not cls.need_to_pay(url, browser):
-            link = cls.get_pdf_url(url, browser)
-            req = requests.get(link)
-            with open(filename, 'wb') as pdf:
-                pdf.write(req.content)
-            return filename
+        soup = cls.get_soup(url, browser)
+        pdf = soup.find('a', string='Full-text PDF')
+        link = pdf['href']
+        browser.open(url)
+        baseurl = browser.geturl()
+        return baseurl + link
 
-
-ALL_PROVIDERS = [Springer, Cammbridge]
+ALL_PROVIDERS = [Springer, Cammbridge, Ams]
