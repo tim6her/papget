@@ -6,22 +6,13 @@
 Welcome to listb's documentation!
 =================================
 
-Howtos
-======
-
-.. toctree::
-   :maxdepth: 2
-   :glob:
-   
-   howtos/*
-
 Scripts
 =======
 
 .. toctree::
    :maxdepth: 2
    :glob:
-   
+
    scripts/*
 
 Modules
@@ -30,7 +21,7 @@ Modules
 .. toctree::
    :maxdepth: 2
    :glob:
-   
+
    modules/*
 
 
@@ -41,4 +32,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
