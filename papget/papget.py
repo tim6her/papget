@@ -121,7 +121,7 @@ class Springer(Provider):
         >>> bool(Springer.need_to_pay(url))
         False
         >>> Springer.get_pdf_url(url)
-        u'https://link.springer.com/content/pdf/10.1007%2Fs40065-017-0185-1.pdf'
+        u'https://link.springer.com/content/pdf/...
         >>> Springer.papget(url, 'temp.pdf')
         u'temp.pdf'
         >>> import os; os.remove('temp.pdf')
@@ -138,15 +138,23 @@ class Springer(Provider):
     @classmethod
     def need_to_pay(cls, url, browser=None):
         soup = cls.get_soup(url, browser)
-        return soup.find('span', attrs={'class', 'buybox__buy'})
+        return soup.find('span', attrs={'class': 'buybox__buy'})
 
     @classmethod
     def get_pdf_url(cls, url, browser=None):
         soup = cls.get_soup(url, browser)
+        pdf = soup.find('a',
+                        title=('Download this book in PDF '
+                        'format'))
+        if pdf:
+            link = pdf['href']
+            return 'https://link.springer.com%s' % link
         pdf = soup.find('span', string='PDF')
         a = pdf.parent
         link = a['href']
         return 'https://link.springer.com%s' % link
+
+
 
 class Cammbridge(Provider):
     """ Provider implementation for Cammbridge University Press
@@ -160,6 +168,9 @@ class Cammbridge(Provider):
         >>> Cammbridge.papget(url, 'temp.pdf')
         u'temp.pdf'
         >>> import os; os.remove('temp.pdf')
+        >>> url2 = 'https://bit.ly/2HBtD9F'
+        >>> bool(Cammbridge.need_to_pay(url2))
+        True
     """
     NAME = 'Cammbridge University Press'
     RE_URL = re.compile('www.cambridge.org')
@@ -167,7 +178,7 @@ class Cammbridge(Provider):
     @classmethod
     def need_to_pay(cls, url, browser=None):
         soup = cls.get_soup(url, browser)
-        return soup.find('a', attrs={'aria-label': 'get access'})
+        return soup.find('a', string='Get access')
 
     @classmethod
     def get_pdf_url(cls, url, browser=None):
@@ -175,7 +186,6 @@ class Cammbridge(Provider):
         pdf = soup.find('a',
                         attrs={'aria-label': 'Download PDF'})
         link = pdf['href']
-        #link = link.split('.pdf')[0] + '.pdf'
         return 'https://www.cambridge.org%s' % link
 
 class Ams(Provider):
@@ -197,7 +207,9 @@ class Ams(Provider):
 
     @classmethod
     def need_to_pay(cls, url, browser=None):
-        return False
+        soup = cls.get_soup(url, browser)
+        return soup.find('div',
+                         id='buy_in_amsbookstore_div')
 
     @classmethod
     def get_pdf_url(cls, url, browser=None):
@@ -206,7 +218,7 @@ class Ams(Provider):
         pdf = soup.find('a', string='Full-text PDF')
         link = pdf['href']
         browser.open(url)
-        baseurl = browser.geturl()
-        return baseurl + link
+        browser.open(link)
+        return browser.geturl()
 
 ALL_PROVIDERS = [Springer, Cammbridge, Ams]

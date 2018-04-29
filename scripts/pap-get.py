@@ -16,8 +16,10 @@ import papget.doi
 @click.command()
 @click.option('--info/--no-info', default=True,
               help='Do you want to write a log to an info file')
+@click.option('--debug/--no-debug', default=False,
+              help='Do you want to raise errors?')
 @click.argument('files', nargs=-1, type=click.Path())
-def main(info=True, files=None):
+def main(info=True, debug=False, files=None):
     """ Small script for downloading papers from bibtex files
     """
     files = filter(lambda f: os.path.splitext(f)[-1] == '.bib', files)
@@ -32,10 +34,24 @@ def main(info=True, files=None):
             has_url = filter(lambda e: 'url' in e, bib.entries)
             urls = [e['url'] for e in has_url]
             for url in urls:
-                target, provider = get_target(url, browser)
-                if target:
-                    fn = name_format(f)
+                try:
+                    target, provider = get_target(url, browser)
+                except BaseException as e:
+                    if debug:
+                        raise e
+                    next
+
+                if not target:
+                    next
+                if debug:
+                    click.echo(f)
+                    click.echo(provider)
+                fn = name_format(f)
+                try:
                     provider.papget(target, fn)
+                except BaseException as e:
+                    if debug:
+                        raise e
 
 def get_target(url, browser=None):
     target = papget.doi.resolve_doi(url, browser)
