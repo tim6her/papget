@@ -139,3 +139,5 @@ class Springer(Provider):
         if not cls.need_to_pay(url, browser):
             link = cls.get_pdf_url(url, browser)
             return urllib.urlretrieve(link, filename)
+
+ALL_PROVIDERS = [Springer]
