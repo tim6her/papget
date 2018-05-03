@@ -224,15 +224,8 @@ class Ams(Provider):
 class SciHub(Provider):
     """ Provider implementation for Sci-Hub
 
-    Examples:
-        >>> url = 'https://bit.ly/2HEalfN'
-        >>> bool(Ams.need_to_pay(url))
-        False
-        >>> Ams.get_pdf_url(url)
-        u'http://www.ams.org/journals/jams/2016-29-01/...
-        >>> Ams.papget(url, 'temp.pdf')
-        u'temp.pdf'
-        >>> import os; os.remove('temp.pdf')
+    Raises:
+        RuntimeError: if a CAPTACHA is encountered.
     """
     NAME = 'Sci-Hub'
     RE_URL = re.compile('sci-hub.tw')
@@ -255,5 +248,18 @@ class SciHub(Provider):
         link = pdf.p.a['onclick']
         link = re.match(r'.*?=\'(.*)\'', link).group(1)
         return link
+
+    @classmethod
+    def papget(cls, url, filename, browser=None):
+        browser = cls.get_browser(browser)
+        if not cls.need_to_pay(url, browser):
+            link = cls.get_pdf_url(url, browser)
+            req = requests.get(link)
+            if 'CaptchaRedirect' in req.text:
+                raise RuntimeError('Captach encountered')
+
+            with open(filename, 'wb') as pdf:
+                pdf.write(req.content)
+            return filename
 
 ALL_PROVIDERS = [Springer, Cammbridge, Ams]
