@@ -6,8 +6,8 @@ from __future__ import division, print_function, absolute_import
 import os
 
 import click
-import mechanize
 import yaml
+import datetime as dt
 
 import bibtexparser as bibtex
 
@@ -18,8 +18,11 @@ import papget.doi
               help='Do you want to write a log to an info file')
 @click.option('--debug/--no-debug', default=False,
               help='Do you want to raise errors?')
+@click.option('--network', default=None,
+              help='Which network are you currently using, '
+                   'TU Wien etc.')
 @click.argument('files', nargs=-1, type=click.Path())
-def main(info=True, debug=False, files=None):
+def main(info=True, debug=False, files=None, network=None):
     """ Small script for downloading papers from bibtex files
     """
     files = filter(lambda f: os.path.splitext(f)[-1] == '.bib', files)
@@ -34,32 +37,56 @@ def main(info=True, debug=False, files=None):
             has_url = filter(lambda e: 'url' in e, bib.entries)
             urls = [e['url'] for e in has_url]
             for url in urls:
-                try:
-                    target, provider = get_target(url, browser)
-                except BaseException as e:
-                    if debug:
-                        raise e
-                    next
+                succ = False
+                d = dict(doi=url,
+                         note='automatically downloaded with '
+                              '<https://github.com/tim6her/papget/>')
+                if network:
+                    d['network'] = network
+                target, provider = get_target(url, browser)
+                d['url'] = target
+                d['provider'] = provider.NAME
 
-                if not target:
-                    next
                 if debug:
                     click.echo(f)
-                    click.echo(provider)
+                    click.echo(provider.NAME)
                 fn = name_format(f)
                 try:
                     succ = provider.papget(target, fn)
                 except BaseException as e:
                     if debug:
                         raise e
+                    click.echo(e)
                 if not succ:
-                    succ = False
-                    try_scihub(url, f)
+                    try:
+                        succ = try_scihub(url, f)
+                        d['provider'] = papget.SciHub.NAME
+                    except BaseException as e:
+                        if debug:
+                            raise e
+                        click.echo(e)
+                if succ:
+                    d['date'] = dt.datetime.now().strftime('%Y-%m-%d')
+                    d['short description'] = 'automatically downloaded by tim6her on {}, {}'.format(d['date'], d['url'])
+                    if info:
+                        fn = name_format(f, ext='info')
+                        write_info(d, fn)
 
 
 def try_scihub(url, f, browser=None):
     fn = name_format(f)
-    papget.SciHub.papget(url, fn, browser)
+    return papget.SciHub.papget(url, fn, browser)
+
+def write_info(d, filename):
+    if os.path.isfile(filename):
+        with open(filename, 'r') as info:
+            d_info = yaml.load(info)
+    else:
+        d_info = {}
+    d_info['download'] = d
+    with open(filename, 'w') as info:
+        yaml.safe_dump(d_info, info,
+                       default_flow_style=False)
 
 def get_target(url, browser=None):
     target = papget.doi.resolve_doi(url, browser)
@@ -69,16 +96,10 @@ def get_target(url, browser=None):
             return target, provider
     return url, papget.SciHub
 
-def name_format(bib_name, style='shelah'):
+def name_format(bib_name, style='shelah', ext='pdf'):
     fn = os.path.basename(bib_name)
     nr = fn.split('-')[0]
-    if nr in name_format.cache:
-        name_format.cache[nr] += 1
-        nr = '{}-{}'.format(nr, name_format.cache[nr])
-    else:
-        name_format.cache[nr] = 1
-    return '{}.pdf'.format(nr)
-name_format.cache = {}
+    return '{}.{}'.format(nr, ext)
 
 if __name__ == '__main__':
     main()
