@@ -48,10 +48,18 @@ def main(info=True, debug=False, files=None):
                     click.echo(provider)
                 fn = name_format(f)
                 try:
-                    provider.papget(target, fn)
+                    succ = provider.papget(target, fn)
                 except BaseException as e:
                     if debug:
                         raise e
+                if not succ:
+                    succ = False
+                    try_scihub(url, f)
+
+
+def try_scihub(url, f, browser=None):
+    fn = name_format(f)
+    papget.SciHub.papget(url, fn, browser)
 
 def get_target(url, browser=None):
     target = papget.doi.resolve_doi(url, browser)
@@ -59,7 +67,7 @@ def get_target(url, browser=None):
     for provider in papget.ALL_PROVIDERS:
         if provider.RE_URL.search(target):
             return target, provider
-    return None, None
+    return url, papget.SciHub
 
 def name_format(bib_name, style='shelah'):
     fn = os.path.basename(bib_name)

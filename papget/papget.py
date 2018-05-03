@@ -221,4 +221,39 @@ class Ams(Provider):
         browser.open(link)
         return browser.geturl()
 
+class SciHub(Provider):
+    """ Provider implementation for Sci-Hub
+
+    Examples:
+        >>> url = 'https://bit.ly/2HEalfN'
+        >>> bool(Ams.need_to_pay(url))
+        False
+        >>> Ams.get_pdf_url(url)
+        u'http://www.ams.org/journals/jams/2016-29-01/...
+        >>> Ams.papget(url, 'temp.pdf')
+        u'temp.pdf'
+        >>> import os; os.remove('temp.pdf')
+    """
+    NAME = 'Sci-Hub'
+    RE_URL = re.compile('sci-hub.tw')
+
+    @classmethod
+    def need_to_pay(cls, url, browser=None):
+        return False
+
+    @classmethod
+    def get_pdf_url(cls, url, browser=None):
+        doi = re.match(r'http://dx.doi.org/(.*)', url).group(1)
+        scihub = 'http://sci-hub.tw/'
+        browser = cls.get_browser(browser)
+        soup = cls.get_soup(scihub + doi, browser)
+        pdf = soup.find('div',
+                        attrs={'class': 'button',
+                               'id': 'save'}
+                       )
+
+        link = pdf.p.a['onclick']
+        link = re.match(r'.*?=\'(.*)\'', link).group(1)
+        return link
+
 ALL_PROVIDERS = [Springer, Cammbridge, Ams]
