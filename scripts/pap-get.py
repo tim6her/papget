@@ -15,14 +15,16 @@ import papget.doi
 
 @click.command()
 @click.option('--info/--no-info', default=True,
-              help='Do you want to write a log to an info file')
+              help='Do you want to write a log to an info file?')
+@click.option('--overwrite/--keep', default=True,
+              help='Do you want to overwrite existant PDFs?')
 @click.option('--debug/--no-debug', default=False,
               help='Do you want to raise errors?')
 @click.option('--network', default=None,
               help='Which network are you currently using, '
-                   'TU Wien etc.')
+                   'TU Wien etc.?')
 @click.argument('files', nargs=-1, type=click.Path())
-def main(info=True, debug=False, files=None, network=None):
+def main(info=True, overwrite=True, debug=False, files=None, network=None):
     """ Small script for downloading papers from bibtex files
     """
     files = filter(lambda f: os.path.splitext(f)[-1] == '.bib', files)
@@ -51,6 +53,9 @@ def main(info=True, debug=False, files=None, network=None):
                     click.echo(f)
                     click.echo(provider.NAME)
                 fn = name_format(f)
+                if (not overwrite) and os.path.isfile(fn):
+                    continue
+
                 try:
                     succ = provider.papget(target, fn)
                 except BaseException as e:
