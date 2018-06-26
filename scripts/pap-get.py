@@ -40,6 +40,10 @@ def main(info=True, overwrite=True, debug=False, files=None, network=None):
             urls = [e['url'] for e in has_url]
             for url in urls:
                 succ = False
+                fn = name_format(f)
+                if not overwrite and os.path.isfile(fn):
+                    continue
+
                 d = dict(doi=url,
                          note='automatically downloaded with '
                               '<https://github.com/tim6her/papget/>')
@@ -53,7 +57,7 @@ def main(info=True, overwrite=True, debug=False, files=None, network=None):
                     click.echo(f)
                     click.echo(provider.NAME)
                 fn = name_format(f)
-                if (not overwrite) and os.path.isfile(fn):
+                if not overwrite and os.path.isfile(fn):
                     continue
 
                 try:
@@ -72,7 +76,9 @@ def main(info=True, overwrite=True, debug=False, files=None, network=None):
                         click.echo(e)
                 if succ:
                     d['date'] = dt.datetime.now().strftime('%Y-%m-%d')
-                    d['short description'] = 'automatically downloaded by tim6her on {}, {}'.format(d['date'], d['url'])
+                    desc = 'automatically downloaded by tim6her on {}, {}'
+                    desc = desc.format(d['date'], d['url'])
+                    d['short description'] = desc
                     if info:
                         fn = name_format(f, ext='info')
                         write_info(d, fn)

@@ -257,6 +257,10 @@ class SciHub(Provider):
             req = requests.get(link)
             if 'CaptchaRedirect' in req.text:
                 raise RuntimeError('Captach encountered')
+            content = req.content
+            if len(content) < 3000:
+                msg = 'File size too small to be valid PDF: {}'
+                raise RuntimeError(msg.format(len(content)))
 
             with open(filename, 'wb') as pdf:
                 pdf.write(req.content)
